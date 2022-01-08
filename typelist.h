@@ -11,8 +11,29 @@
  *
  */
 
-class NullType {}; // NullType
+/**
+ * @brief Why TypeList
+ * When do the design patterns like Abstract Factory
+ * The code volumn will increase as the subtype goes up
+ * For example, tho we got HotDrinkFactory,
+ * we still need to define and implement(overload) CoffeeFactory/TeaFactory
+ * and if we need more, we need to impl more.
+ * 
+ * but if we can do
+ * typedef HotDrinkFactory<Coffee, Tea, Milk, Juice> DrinkFacotry
+ * things will get better
+ * 
+ * And the TypeList is a certain useful technique to realize such convience
+ */
 
+class NullType {}; // NullType
+/**
+ * @brief The only use of TypeList is to carry type per se
+ * without anything else, no values, no methods, no anything else, just type
+ * 
+ * @tparam T 
+ * @tparam U 
+ */
 template<class T, class U>
 struct TypeList
 {
@@ -23,8 +44,9 @@ struct TypeList
 typedef TypeList<int, NullType> OneTypeOnly;
 
 // [3.3] linearizing typelist creation
+// Here SingedIntegrals is a TypeList
 typedef TypeList<signed char, TypeList<short int, TypeList<int, TypeList<long int, NullType> > > > SingedIntegrals;
-
+// Here, using recursive way to define a typelist, will benefit code reuseability
 # define TYPELIST_1(T1) TypeList<T1, NullType>
 # define TYPELIST_2(T1, T2) TypeList<T1, TYPELIST_1(T2)>
 # define TYPELIST_3(T1, T2, T3) TypeList<T1, TYPELIST_2(T2, T3)>
@@ -115,6 +137,24 @@ public:
 };
 
 // [3.8] appending to typelists
+/**
+ * @brief 
+ * if (TList is NullType and T is NullType):
+ *  Result is NullType
+ * else:
+ *  if (TList is NullType and T is a single(nontypelist) type)
+ *    Result is a typelist having T as its only element
+ *  else:
+ *    if (Tlist is Nulltype and T is a typelist):
+ *      Result is T itself
+ *    else if (TList is non-null):
+ *      Result is a typelist having TList::Head as its head and 
+ *      the result of appending T to TList::Tail as its tail
+ * 
+ * @tparam TList 
+ * @tparam T
+ * @returns Result: the final result should be a specific type 
+ */
 template <class TList, class T> struct Append;
 
 template <>
@@ -123,9 +163,60 @@ struct Append <NullType, NullType>
   typedef NullType Result;
 };
 
+// if TList is null then the first inserted ele is the Result
 template <class T>
 struct Append <NullType, T>
 {
   typedef TYPELIST_1(T) Result;
 };
+template <class Head, class Tail>
+struct Append<NullType, TypeList<Head, Tail>>
+{
+  typedef TypeList<Head, Tail> Result;  
+};
+// unified Append operation for single types and typelists
+template <class Head, class Tail, class T>
+struct Append<TypeList<Head, Tail>, T>
+{
+  typedef TypeList<Head, typename Append<Tail, T>::Result> Result;
+};
+// when we use it
+typedef Append<SingedIntegrals, TYPELIST_3(float, double, long double)>::Result SignedTypes;
 
+
+/**
+ * @brief [3.9] Erasing a Type from a TypeList
+ * There are two operations:
+ * 1. erase only the first occurance
+ * 2. erase all occurances of a given type
+ * 
+ * input: TypeList TList, type T
+ * output: Inner type definition Result
+ * 
+ * if TList is NullType:
+ *  Result is NullType
+ * else
+ *  if T is the same as TList::Head
+ *    Result is TList::Tail
+ *  else Result is a typelist having TList::Head as its head and the result of applying
+ *    Erase to TList::Tail and T as its tail
+ */
+template <class TList, class T> struct Erase;
+
+template <class T>
+struct Erase <NullType, T>
+{
+  typedef NullType Result;
+};
+
+template<class T, class Tail>
+struct Erase <TypeList<T, Tail>, T>
+{
+  typedef Tail Result;
+};
+
+template <class Head, class Tail, class T>
+struct Erase <TypeList<Head, Tail>, T>
+{
+  typedef TypeList<Head, typedef Erase<Tail, T>::Result> Result;
+};
