@@ -5,8 +5,8 @@
 .pytest_cache/
 *.tmp
 __pycache__/
-# ignore all exe
-*
-!/**/
-!*.*
+# # ignore all exe
+# *
+# !/**/
+# !*.*
 
