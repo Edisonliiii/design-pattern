@@ -109,7 +109,23 @@ template <class Head, class Tail, class T>
 struct IndexOf<TypeList<Head, Tail>, T>
 {
 private:
-  enum { temp = IndexOf<Tail, T>::value };
+  enum { temp = IndexOf<Tail, T>::value }; // will unfold from here first
 public:
-  enum { value = temp == -1 ? -1 : 1 + temp };
+  enum { value = temp == -1 ? -1 : 1 + temp }; // unfold from here secondly
 };
+
+// [3.8] appending to typelists
+template <class TList, class T> struct Append;
+
+template <>
+struct Append <NullType, NullType>
+{
+  typedef NullType Result;
+};
+
+template <class T>
+struct Append <NullType, T>
+{
+  typedef TYPELIST_1(T) Result;
+};
+
