@@ -18,10 +18,11 @@ public:
     printName(result);
     using namespace Loki;
     using namespace Loki::TL;
+// create some test fixtures
 #ifndef LOKI_DISABLE_TYPELIST_MACROS
     typedef LOKI_TYPELIST_1(char) CharList;
     typedef LOKI_TYPELIST_3(char, int, double) CharIntDoubleList;
-    typedef LOKI_TYPELIST_3(char, int, double, char) CharIntDoubleCharList;
+    typedef LOKI_TYPELIST_4(char, int, double, char) CharIntDoubleCharList;
     typedef LOKI_TYPELIST_3(Base, Derived1, Derived2) BaseDerived1Derived2List;
     typedef LOKI_TYPELIST_3(Derived2, Derived1, Base) Derived2Derived1BaseList;
     typedef LOKI_TYPELIST_4(Base, Derived1, Base, Derived2) BaseDerived1BaseDerived2List;
@@ -67,7 +68,33 @@ public:
 #ifndef LOKI_DISABLE_TYPELIST_MACROS
     r = SameType<Append<NullType, NullType>::Result, NullType>::value &&
       SameType<Append<NullType, char>::Result, LOKI_TYPELIST_1(char)>::value &&
-      SameType<Append<NullType, CharList>::Result, CharList>::value;
+      SameType<Append<NullType, CharList>::Result, CharList>::value &&
+      SameType<Append<CharList, NullType>::Result, CharList>::value &&
+      SameType<Append<CharList, int>::Result, LOKI_TYPELIST_2(char, int)>::value &&
+      SameType<Append<CharList, CharIntDoubleList>::Result, LOKI_TYPELIST_4(char, char, int, double)>::value;
+    testAssert("Append", r, result);
+
+    r = SameType<Erase<NullType, char>::Result, NullType>::value &&
+        SameType<Erase<CharList, char>::Result, NullType>::value &&
+        SameType<Erase<CharList, long>>::Result, CharList>::value &&
+        SameType<Erase<CharIntDoubleList, int>::Result, LOKI_TYPELIST_2(char, double)>::value &&
+        SameType<Erase<CharIntDoubleList, double>::Result, LOKI_TYPELIST_2(char, int)>::value;
+    testAssert("Erase", r, result);
+
+    r = SameType<EraseAll<NullType, char>::Result, NullType>::value &&
+        SameType<EraseAll<CharList, char>::Result, NullType>::value &&
+        SameType<EraseAll<CharList, long>::Result, CharList>::value &&
+        SameType<EraseAll<CharIntDoubleList, int>::Result, LOKI_TYPELIST_2(char, double)>::value &&
+        SameType<EraseAll<CharIntDoubleList, double>::Result, LOKI_TYPELIST_2(char, int)>::value &&
+        SameType<EraseAll<CharIntDoubleCharList, char>::Result, LOKI_TYPELIST_2(int, double)>::value &&
+        SameType<EraseAll<CharIntDoubleCharList, int>::Result, LOKI_TYPELIST_3(char, double, char)>::value &&
+        SameType<EraseAll<CharIntDoubleCharList, double>::Result, LOKI_TYPELIST_3(char, int, char)>::value;
+    testAssert("EraseAll", r, result);
+
+    // TODO: "NoDuplicates", "Replace", "ReplaceAll", "Reverse", "MostDerived" ....
+    // Next section should be test for LOKI_DISABLE_TYPELIST_MACROS
+
+
 #else
 #endif
   }

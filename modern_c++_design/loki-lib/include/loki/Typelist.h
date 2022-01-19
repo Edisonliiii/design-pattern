@@ -268,12 +268,14 @@ namespace Loki {
     template<class T, class Tail>
     struct Erase <TypeList<T, Tail>, T>
     {
+      // once we encounter T, we result the rest part of the typelist directly
       typedef Tail Result;
     };
 
     template <class Head, class Tail, class T>
     struct Erase <TypeList<Head, Tail>, T>
     {
+      // once we want to remove something, we build a new TypeList and named it as result
       typedef TypeList<Head, typename Erase<Tail, T>::Result> Result;
     };
 
@@ -289,7 +291,7 @@ namespace Loki {
     {
       // go all the way down the list removing the type
       typedef typename EraseAll<Tail, T>::Result Result;
-    }
+    };
 
     template <class Head, class Tail, class T>
     struct EraseAll <TypeList<Head, Tail>, T>
