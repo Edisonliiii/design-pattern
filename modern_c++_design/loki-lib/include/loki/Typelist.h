@@ -1,7 +1,8 @@
 #ifndef LOKI_TYPELIST_INC_
 #define LOKI_TYPELIST_INC_
 
-#include <NullType.h>
+#include "NullType.h"
+#include "TypelistMacros.h"
 
 /**
  * @file typelist.h
@@ -376,6 +377,80 @@ namespace Loki {
     {
       typedef TypeList<Head, typename Replace<Tail, T, U>::Result> Result;
     };
+
+    ////////////////////////////////////////////////////////////////////////////////
+    // class template ReplaceAll
+    // Replaces all occurences of a type in a typelist, with another type
+    // Invocation (TList is a typelist, T, U are types):
+    // Replace<TList, T, U>::Result
+    // returns a typelist in which all occurences of T is replaced with U
+    ////////////////////////////////////////////////////////////////////////////////
+
+    template<class TList, class T, class U> struct ReplaceAll;
+    template<class T, class U>
+    struct ReplaceAll <NullType, T, U>
+    {
+      typedef NullType Result;
+    };
+
+    // partial-specialization only if the first element of TypeList is same as the element we want to replace
+    template<class T, class Tail, class U>
+    struct ReplaceAll<TypeList<T, Tail>, T, U>
+    {
+      typedef TypeList<U, typename ReplaceAll<Tail, T, U>::Result> Result;
+    };
+
+    template<class Head, class Tail, class T, class U>
+    struct ReplaceAll<TypeList<Head, Tail>, T, U>
+    {
+      typedef TypeList<Head, typename ReplaceAll<Tail, T, U>::Result> Result;
+    };
+
+    ////////////////////////////////////////////////////////////////////////////////
+    // class template Reverse
+    // Reverses a typelist
+    // Invocation (TList is a typelist):
+    // Reverse<TList>::Result
+    // returns a typelist that is TList reversed
+    ////////////////////////////////////////////////////////////////////////////////
+    template<class TList> struct Reverse;
+
+    template<>
+    struct Reverse <NullType>
+    {
+      typedef NullType Result;
+    };
+
+    template<class Head, class Tail>
+    struct Reverse <TypeList<Head, Tail>>
+    {
+      typedef typename Append<typename Reverse<Tail>::Result, Head>::Result Result;
+    };
+
+    ////////////////////////////////////////////////////////////////////////////////
+    // class template MostDerived
+    // Finds the type in a typelist that is the most derived from a given type
+    // Invocation (TList is a typelist, T is a type):
+    // MostDerived<TList, T>::Result
+    // returns the type in TList that's the most derived from T
+    ////////////////////////////////////////////////////////////////////////////////
+    template <class TList, class T> struct MostDerived;
+
+    template <class T>
+    struct MostDerived<NullType, T>
+    {
+      typedef T Result;
+    };
+
+    template <class Head, class Tail, class T>
+    struct MostDerived<TypeList<Head, Tail>, T>
+    {
+    private:
+      typedef typename MostDerived<Tail, T>::Result Candidate;
+    public:
+      ;
+    }
+
   };// namespace TL
 }; //namespace Loki
 
