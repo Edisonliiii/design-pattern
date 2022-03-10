@@ -3,12 +3,12 @@
 
 // $Id$
 
-
 #include <loki/LokiExport.h>
-#include <loki/Threads.h>
 #include <loki/Singleton.h>
+#include <loki/Threads.h>
+
 #include <cstddef>
-#include <new> // needed for std::nothrow_t parameter.
+#include <new>  // needed for std::nothrow_t parameter.
 
 #ifndef LOKI_DEFAULT_CHUNK_SIZE
 #define LOKI_DEFAULT_CHUNK_SIZE 4096
@@ -23,11 +23,13 @@
 #endif
 
 #ifndef LOKI_DEFAULT_SMALLOBJ_LIFETIME
-#define LOKI_DEFAULT_SMALLOBJ_LIFETIME ::Loki::LongevityLifetime::DieAsSmallObjectParent
+#define LOKI_DEFAULT_SMALLOBJ_LIFETIME \
+  ::Loki::LongevityLifetime::DieAsSmallObjectParent
 #endif
 
 #if defined(LOKI_SMALL_OBJECT_USE_NEW_ARRAY) && defined(_MSC_VER)
-#pragma message("Don't define LOKI_SMALL_OBJECT_USE_NEW_ARRAY when using a Microsoft compiler to prevent memory leaks.")
+#pragma message( \
+    "Don't define LOKI_SMALL_OBJECT_USE_NEW_ARRAY when using a Microsoft compiler to prevent memory leaks.")
 #pragma message("now calling '#undef LOKI_SMALL_OBJECT_USE_NEW_ARRAY'")
 #undef LOKI_SMALL_OBJECT_USE_NEW_ARRAY
 #endif
@@ -37,37 +39,11 @@
 ///  \defgroup  SmallObjectGroupInternal Internals
 ///  \ingroup   SmallObjectGroup
 
+namespace Loki {
+namespace LongevityLifetime {
 
-namespace Loki
-{
-  namespace Long
-}; // namespace Loki
+template <class T>
+struct DieAsSmallObjectParent : DieLast<T> {};
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+};  // namespace LongevityLifetime
+};  // namespace Loki
