@@ -530,6 +530,14 @@ Chunk* FixedAllocator::VicinityFind(void* p) const {
 }
 
 // Chunk ----------------------------------------------------
+/**
+ * @brief get a chunk from system
+ *
+ * @param blockSize
+ * @param blocks
+ * @return true
+ * @return false
+ */
 bool Chunk::Init(::std::size_t blockSize, unsigned char blocks) {
   assert(blockSize > 0);
   assert(blocks > 0);
@@ -540,6 +548,7 @@ bool Chunk::Init(::std::size_t blockSize, unsigned char blocks) {
   // if this new operator fails, it will throw, and the exception will get
   // caught one layer up
   pData_ = static_cast<unsigned char*>(::operator new(allocSize));
+  if (nullptr == pData_) return false;
 #else
   // use malloc
   pData_ = static_cast<unsigned char*>(::std::malloc(allocSize));
@@ -564,6 +573,10 @@ void Chunk::Reset(::std::size_t blockSize, unsigned char blocks) {
   }
 }
 
+/**
+ * @brief Release the memory back to system
+ *
+ */
 void Chunk::Release() {
   assert(nullptr != pData_);
 #ifdef USE_NEW_TO_ALLOCATE
@@ -573,6 +586,12 @@ void Chunk::Release() {
 #endif
 }
 
+/**
+ * @brief Allocate a ceratin number of block to user space
+ *
+ * @param blockSize
+ * @return void*
+ */
 void* Chunk::Allocate(::std::size_t blockSize) {
   if (IsFilled()) {
     return nullptr;
@@ -582,6 +601,7 @@ void* Chunk::Allocate(::std::size_t blockSize) {
   // here, we use multiplication is to make the ptr offset from the beginning
   // addr of the chunk
   unsigned char* pResult = pData_ + (firstAvailableBlock_ * blockSize);
+  // update firstavailableblock_ to point to the next block
   firstAvailableBlock_ = *pResult;
   --blocksAvailable_;
   return pResult;
