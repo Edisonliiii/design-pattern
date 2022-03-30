@@ -30,21 +30,18 @@ class TraceTarget {
      所以用夫类的指针可以无缝接轨子类的object 而vptr指向的内容是不一样的
      所以就实现了自动筛选
   */
-  std::list<std::shared_ptr<ObserverCommonInterface>> waitingQueue;
+  std::list<std::weak_ptr<ObserverCommonInterface>> waitingQueue;
   void launchSignal() {
-    // std::cout << "Check waitingQueue length: " << waitingQueue.size()
-    //           << std::endl;
-    std::list<std::shared_ptr<ObserverCommonInterface>>::iterator itr =
+    std::list<std::weak_ptr<ObserverCommonInterface>>::iterator itr =
         waitingQueue.begin();
+    // send out signals
     while (itr != waitingQueue.end()) {
-      //   std::shared_ptr<ObserverCommonInterface> obj(itr->lock());
-      //   std::cout << "check ref count" << obj.use_count() << std::endl;
-      std::cout << "check ref count -- :" << itr->use_count() << std::endl;
-      if (itr->use_count()) {
-        (*itr)->update(name, location, id);
-        (*itr)->printer();
+      if (itr->use_count()) {  // ref count > 0
+        std::shared_ptr<ObserverCommonInterface> tmp = itr->lock();
+        tmp->update(name, location, id);
+        tmp->printer();
         ++itr;
-      } else {
+      } else {  // ref count = 0
         std::cout << "Erasing" << std::endl;
         itr = waitingQueue.erase(itr);
       }
@@ -53,15 +50,10 @@ class TraceTarget {
 
  public:
   // one-off
-  void mount(std::shared_ptr<ObserverCommonInterface> obj) {
-    // std::cout << "check ref count " << obj.use_count() << std::endl;
-    // std::weak_ptr<ObserverCommonInterface> _tmp(obj);
-    std::cout << "check ref count before pb " << obj.use_count() << std::endl;
-    // std::endl;
+  void mount(std::weak_ptr<ObserverCommonInterface> obj) {
+    // std::cout << "before pb: " << obj.use_count() << std::endl;
     waitingQueue.push_back(obj);
-    std::cout << "check ref count after pb " << obj.use_count() << std::endl;
-    // std::cout << "check ref count after push_back " << obj.use_count()
-    //           << std::endl;
+    // std::cout << "after pb: " << obj.use_count() << std::endl;
   }
   void unmount(const std::shared_ptr<ObserverCommonInterface>& obj) {
     // in here, we delete the current obj directly
@@ -97,12 +89,10 @@ class CurrentTarget : public ObserverCommonInterface {
 
  public:
   CurrentTarget(TraceTarget& obj) : tmp(obj) {
-    std::shared_ptr<CurrentTarget> _tmp(this);
-    std::cout << "check ref count before mount: " << _tmp.use_count()
-              << std::endl;
-    tmp.mount(_tmp);
-    std::cout << "check ref count after mount: " << _tmp.use_count()
-              << std::endl;
+    // std::cout<<"before mount: "<<
+    // std::shared_ptr<ObserverCommonInterface> tmper(this);
+    tmp.mount(shared_from_this());
+    // std::cout << "after mount: " << tmper.use_count() << std::endl;
   }
 
   void update(std::string na_, int loc_, int id_) override {
@@ -138,9 +128,7 @@ class HistoryTarget : public ObserverCommonInterface {
 
  public:
   HistoryTarget(TraceTarget& obj) : tmp(obj) {
-    // std::shared_ptr<ObserverCommonInterface> _tmp =
-    //     std::make_shared<HistoryTarget>(*this);
-    tmp.mount(std::make_shared<HistoryTarget>(*this));
+    tmp.mount(std::shared_ptr<ObserverCommonInterface>(this));
   }
 
   void update(std::string na_, int loc_, int id_) override {
@@ -166,16 +154,15 @@ class HistoryTarget : public ObserverCommonInterface {
 
 int main(int argc, char const* argv[]) {
   TraceTarget obj;
-  //   CurrentTarget c_listener(obj);
-  //   HistoryTarget h_listener(obj);
-  std::shared_ptr<CurrentTarget> c_listener =
-      std::make_shared<CurrentTarget>(obj);
-  std::cout << "check in main: " << c_listener.use_count() << std::endl;
-  std::shared_ptr<HistoryTarget> h_listener =
-      std::make_shared<HistoryTarget>(obj);
-
+  // CurrentTarget* c_1 = new CurrentTarget(obj);
+  // HistoryTarget* h_1 = new HistoryTarget(obj);
+  std::shared_ptr<CurrentTarget> c_1 = std::make_shared<CurrentTarget>(obj);
+  // std::shared_ptr<HistoryTarget> h_1(new HistoryTarget(obj));
+  std::shared_ptr<CurrentTarget> c_1_u(c_1);
   obj.changeState("hello", 100, 1000);
   obj.changeState("edee", 110, 1010);
   obj.changeState("stephanie", 111, 1110);
+  // std::cout << c_1_u.use_count() << std::endl;
+  // std::cout << "check in main: " << c_listener.use_count() << std::endl;
   return 0;
 }
