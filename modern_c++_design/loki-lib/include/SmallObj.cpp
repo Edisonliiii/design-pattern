@@ -1,5 +1,3 @@
-// $Id$
-
 // ----------------------------------------------------------------------------
 
 #include <loki/SmallObj.h>
@@ -533,6 +531,9 @@ Chunk* FixedAllocator::VicinityFind(void* p) const {
 /**
  * @brief get a chunk from system
  *
+ * 1. malloc -- only get the blank memory
+ * 2. clear the memory
+ *
  * @param blockSize
  * @param blocks
  * @return true
@@ -543,6 +544,14 @@ bool Chunk::Init(::std::size_t blockSize, unsigned char blocks) {
   assert(blocks > 0);
   // overflow check
   const ::std::size_t allocSize = blockSize * blocks;
+  /**
+   * [Assert]: is a macro
+   * #include "assert.h"
+   * void assert(int expression)
+   *
+   * if expression : stderr
+   * else abort the current thread
+   */
   assert(allocSize / blockSize == blocks);
 #ifdef USE_NEW_TO_ALLOCATE
   // if this new operator fails, it will throw, and the exception will get
@@ -559,7 +568,10 @@ bool Chunk::Init(::std::size_t blockSize, unsigned char blocks) {
 }
 
 void Chunk::Reset(::std::size_t blockSize, unsigned char blocks) {
+  // check group
+  // block size check
   assert(blockSize > 0);
+  // block number check
   assert(blocks > 0);
   // overflow check
   assert((blockSize * blocks) / blockSize == blocks);
@@ -569,7 +581,7 @@ void Chunk::Reset(::std::size_t blockSize, unsigned char blocks) {
 
   unsigned char i = 0;
   for (unsigned char* p = pData_; i != blocks; p += blockSize) {
-    *p = ++i;
+    *p = ++i;  // give each block an index, the index is the value of the block
   }
 }
 
@@ -582,6 +594,14 @@ void Chunk::Release() {
 #ifdef USE_NEW_TO_ALLOCATE
   ::operator delete(pData_);
 #else
+  /**
+   * void* can point to any address, but just because of this, it can not be
+   * easily dereferenced
+   *
+   * 正确顺序是 void* -> anything
+   * then, static_cast<anything>
+   *
+   */
   ::std::free(static_cast<void*>(pData_));
 #endif
 }
