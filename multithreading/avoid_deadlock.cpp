@@ -7,6 +7,14 @@
  -- avoid nested lock
  -- avoid calling user-supplied code while holding a lock
  -- acquire locks in a fixed order (even read-only can also cause deadlock)
+    e.g. a linked-list L, each node has its own mutex
+         iterator a = L.begin()
+         iterator b = L.end()
+         a: increasing, b: decreasing
+         at one time: a->next = b, b->next = a
+         a will need it's next mutex to read
+         b will need it's next mutex to read
+         deadlock!
 */
 #include <algorithm>
 #include <climits>
@@ -30,10 +38,13 @@ class hierarchical_mutex {
   void check_for_hierarchy_violation() {
     if (this_thread_hierarchy_value <= hierarchical_value) {
       throw std::logic_error("mutex hierarchy violated!");
+      // not pass
     }
+    // pass
   }
 
-  void update_hierarchy_value() {
+  void update_hierarchy_value() {  // update previous h-value and
+                                   // (decrease)this_thread_h_value
     previous_hierarchy_value = this_thread_hierarchy_value;
     this_thread_hierarchy_value = hierarchical_value;
   }
@@ -42,6 +53,7 @@ class hierarchical_mutex {
   explicit hierarchical_mutex(unsigned long value)
       : hierarchical_value(value), previous_hierarchy_value(0) {}
 
+  // lock_guard object will use lock and unlock functions
   void lock() {
     check_for_hierarchy_violation();
     internal_mutex.lock();
@@ -51,7 +63,10 @@ class hierarchical_mutex {
   void unlock() {
     if (this_thread_hierarchy_value != hierarchical_value) {
       throw std::logic_error("mutex hierarchy violated!");
+      // not pass
     }
+    // pass (this_thread_hierarchy_value == hierarchical_value)
+    // current thread is the one being run
     this_thread_hierarchy_value = previous_hierarchy_value;
     internal_mutex.unlock();
   }
@@ -64,6 +79,7 @@ class hierarchical_mutex {
   }
 };  // hierarchical_mutex
 
+// init as max at the beginning
 thread_local unsigned long hierarchical_mutex::this_thread_hierarchy_value(
     ULONG_MAX);
 
@@ -72,7 +88,7 @@ hierarchical_mutex low_level_mutex(100);
 hierarchical_mutex other_level_mutex(300);
 
 int do_low_level_stuff() {
-  std::cout << "doing lower level stuff" << std::endl;
+  // std::cout << "doing lower level stuff" << std::endl;
   return -1;
 };  // doesn't lock any mutexes
 void do_high_level_stuff(int some_param){};
@@ -80,6 +96,7 @@ void do_other_stuff(){};
 
 int low_level_func() {
   std::lock_guard<hierarchical_mutex> llm(low_level_mutex);
+  std::cout << "low level mutex" << std::endl;
   return do_low_level_stuff();
 }
 
@@ -88,21 +105,25 @@ void high_level_func() {
   // BasicLockable: have member function m.lock() & m.unlock()
   // transfer ownership
   std::lock_guard<hierarchical_mutex> hlm(high_level_mutex);
+  std::cout << "high level mutex" << std::endl;
   do_high_level_stuff(low_level_func());
 }
 
 void other_stuff() { high_level_func(); }
+void other_stuff_lower() { std::cout << "other level mutex" << std::endl; }
 void thread_a() { high_level_func(); }
 void thread_b() {
   std::lock_guard<hierarchical_mutex> olm(other_level_mutex);
-  other_stuff();
+  // other_stuff();
+  other_stuff_lower();
 }
 
 int main(int argc, char const *argv[]) {
   std::thread ta(thread_a);
-  // std::thread tb(thread_b); // illegal
+  std::thread tb(thread_b);  // illegal, because we tried to lock higher
+  // level lock after holding lower level lock
   ta.join();
-  // tb.join();
-  std::cout << "All threads joined!\n";
+  tb.join();
+  std::cout << "[Main] All threads joined!\n";
   return 0;
 }

@@ -1,3 +1,19 @@
+/**
+ * @file join_test.cpp
+ * @author your name (you@domain.com)
+ * @brief
+ * @version 0.1
+ * @date 2022-05-02
+ *
+ * @copyright Copyright (c) 2022
+ *
+ *
+ *
+ *
+ * [Thread order and their c'tors]
+ * join(): has nothing to do with which thread obj is run first
+ *         It only tell the main thread to wait it come back
+ */
 #include <chrono>    // std::chrono::seconds
 #include <iostream>  // std::cout
 #include <thread>    // std::thread, std::this_thread::sleep_for
