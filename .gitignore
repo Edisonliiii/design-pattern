@@ -1,3 +1,8 @@
+# # ignore all exe
+*
+!/**/
+!*.*
+
 .DS_Store
 .editorconfig
 .vscode/
@@ -5,8 +10,4 @@
 .pytest_cache/
 *.tmp
 __pycache__/
-# # ignore all exe
-# *
-# !/**/
-# !*.*
 

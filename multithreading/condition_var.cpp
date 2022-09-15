@@ -25,7 +25,7 @@ void data_preparation_thread() {
     {  // critical area
       std::lock_guard<std::mutex> lk(mut);
       data_queue.push(nxt_data);
-    }
+    }  // lk can only in this block
     data_cond.notify_one();
   }
 }
