@@ -25,7 +25,7 @@ void data_preparation_thread() {
     {  // critical area
       std::lock_guard<std::mutex> lk(mut);
       data_queue.push(nxt_data);
-    }  // lk can only in this block
+    }  // lk can only in this block, from here, lock has been released
     data_cond.notify_one();
   }
 }
@@ -33,6 +33,11 @@ void data_preparation_thread() {
 void data_processing_thread() {
   while (true) {
     std::unique_lock<std::mutex> lk(mut);
+    // wait: block the current thread until the condition variable is notified
+    // if the condition hasn't been satisfied, the thread will unlock the mutex
+    // otherwise, it will keep it locked
+    // wait command has to be used together with unique_lock, rather than
+    // lock_guard
     data_cond.wait(lk, [] { return !data_queue.empty(); });
     data_chunk nxt_data = data_queue.front();
     data_queue.pop();
@@ -41,3 +46,15 @@ void data_processing_thread() {
     if (is_last_chunk(nxt_data)) break;
   }
 }
+
+/* [.wait() is equal to]
+
+template<typename Predicate>
+void minimal_wait(std::unique_lock<std::mutex>& lk, Predicate pred) {
+  while (!pred()) {
+    lk.unlock();
+    lk.lock();
+  }
+}
+
+*/
