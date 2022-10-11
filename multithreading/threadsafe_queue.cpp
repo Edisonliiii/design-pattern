@@ -12,15 +12,17 @@
 template <typename T>
 class threadsafe_queue {
  private:
+  // mutex must be mutable, since lock a mutex is a mutating operation
   mutable std::mutex m;
   std::condition_variable cv;
   std::queue<T> q;
 
  public:
-  threadsafe_queue();
+  threadsafe_queue(){};
   threadsafe_queue(const threadsafe_queue&);
   threadsafe_queue operator=(const threadsafe_queue&) = delete;
 
+  // producer
   void push(T new_value) {
     {
       std::lock_guard<std::mutex> lk(m);
@@ -29,6 +31,7 @@ class threadsafe_queue {
     cv.notify_one();
   }
 
+  // consumers
   bool try_pop(T& value) {
     std::lock_guard<std::mutex> lk(m);
     if (q.empty()) return false;
@@ -36,7 +39,6 @@ class threadsafe_queue {
     q.pop();
     return true;
   }
-
   std::shared_ptr<T> try_pop() {
     std::lock_guard<std::mutex> lk(m);
     if (q.empty()) return std::shared_ptr<T>();
@@ -47,14 +49,14 @@ class threadsafe_queue {
 
   void wait_and_pop(T& value) {
     std::unique_lock<std::mutex> lk(m);
-    cv.wait(lk, [] { return !q.empty(); });
+    cv.wait(lk, [=] { return !q.empty(); });
     value = q.front();
     q.pop();
   }
-
   std::shared_ptr<T> wait_and_pop() {
     std::unique_lock<std::mutex> lk(m);
-    cv.wait(lk, [] { return !q.empty(); });
+    // []: lambda introducer, for this, it will always be pass-by-value
+    cv.wait(lk, [=] { return !q.empty(); });
     std::shared_ptr<T> res(std::make_shared<T>(q.front()));
     q.pop();
     return res;
@@ -65,3 +67,9 @@ class threadsafe_queue {
     return q.empty();
   }
 };
+
+int main(int argc, char const* argv[]) {
+  threadsafe_queue<int> queue;
+  queue.push(100);
+  return 0;
+}
