@@ -1,13 +1,17 @@
-# # ignore all exe
-*
-!/**/
-!*.*
+# ignore all exe, this three lines has to be one the top
+# *
+# !/**/
+# !*.*
 
-.DS_Store
+# general ignores
+runs/*
+**/.DS_Store
 .editorconfig
 .vscode/
 .ipynb_checkpoints/
 .pytest_cache/
 *.tmp
-__pycache__/
-
+**/__pycache__/
+**/__init__.py
+**/*.gz
+**/*.egg-info
